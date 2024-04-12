@@ -18,17 +18,6 @@ data "aws_vpc" "default" {
   default = true
 }
 
-resource "aws_instance" "blog" {
-  ami           = data.aws_ami.app_ami.id
-  instance_type = var.instance_type
-
-  vpc_security_group_ids = [module.blog_sg.security_group_id]
-
-  tags = {
-    Name = "HelloWorld"
-  }
-}
-
 module "blog_sg" {
   source  = "terraform-aws-modules/security_group/aws"
   version = "4.13.0"
@@ -43,6 +32,16 @@ module "blog_sg" {
   egress_cidr_blocks  = ["0.0.0.0/0"]
 }
 
+resource "aws_instance" "blog" {
+  ami           = data.aws_ami.app_ami.id
+  instance_type = var.instance_type
+
+  vpc_security_group_ids = [module.blog_sg.security_group_id]
+
+  tags = {
+    Name = "HelloWorld"
+  }
+}
 resource "aws_security_group" "blog" {
   name = "blog"
   description = "Allow http & https in. Allow everything out"
