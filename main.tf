@@ -58,41 +58,38 @@ resource "aws_instance" "blog" {
     Name = "HelloWorld"
   }
 }
-resource "aws_security_group" "blog" {
-  name = "blog"
-  description = "Allow http & https in. Allow everything out"
 
-  vpc_id = data.aws_vpc.default.id
-}
+module "alb" {
+  source = "terraform-aws-modules/alb/aws"
 
-resource "aws_security_group_rule" "blog_http_in" {
-  type        = "ingress"
-  from_port   = 80
-  to_port     = 80
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  name    = "blog-alb"
+  vpc_id  = module.blog_vpc.vpc_id
+  subnets = module.blog_vpc.public_subnets
 
-  security_group_id = aws_security_group.blog.id
-}
+  # Security Group
+  security_groups = module.blog_vpc.security_group_id
 
+  listeners = {
+    ex-http = {
+      port            = 80
+      protocol        = "HTTP"
 
-resource "aws_security_group_rule" "blog_https_in" {
-  type        = "ingress"
-  from_port   = 443
-  to_port     = 443
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+      forward = {
+        target_group_key = "ex-instance"
+      }
+    }
+  }
 
-  security_group_id = aws_security_group.blog.id
-}
+  target_groups = {
+    ex-instance = {
+      name_prefix      = "blog"
+      protocol         = "HTTP"
+      port             = 80
+      target_type      = "instance"
+    }
+  }
 
-
-resource "aws_security_group_rule" "blog_everything_out" {
-  type        = "egress"
-  from_port   = 0
-  to_port     = 0
-  protocol    = "-1"
-  cidr_blocks = ["0.0.0.0/0"]
-
-  security_group_id = aws_security_group.blog.id
+  tags = {
+    Environment = "dev"
+  }
 }
